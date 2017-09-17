@@ -1,0 +1,20 @@
+[
+  {
+    "storeId":1201,
+    "suite":"123",
+    "streetName":"125 W Wacker drive ",
+    "city":"Chicago",
+    "state":"IL",
+    "zip":"60661",
+    "country":"USA"
+  },
+  {
+    "storeId":1201,
+    "suite":"123",
+    "streetName":"125 W Wacker drive ",
+    "city":"Chicago",
+    "state":"IL",
+    "zip":"60661",
+    "country":"USA"
+  }
+]
