@@ -1,0 +1,20 @@
+[
+  {
+     "productId":"MC123",
+     "productName":"fries",
+     "quantity":"1",
+     "size":"M",
+     "price":"10",
+     "status":"Y",
+     "currency":"USD"
+  },
+  {
+     "productId":"MC125",
+     "productName":"McChicken",
+     "quantity":"1",
+     "size":"",
+     "price":"1.00",
+     "status":"Y",
+     "currency":"USD"
+  }
+]

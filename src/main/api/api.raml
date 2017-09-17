@@ -1,0 +1,163 @@
+#%RAML 0.8
+title: restaurant-Api
+version: 1.0.0
+baseUri: https://mocksvc.mulesoft.com/mocks/8b7da933-8b98-45e0-a750-79c96b07cfd7
+traits:
+  - rate-limited:
+     queryParameters:
+       client_id:
+        type: string
+       client_secret:
+        type: string
+/restaurents:
+  get:
+    is: [rate-limited]
+    description:  retrive all restaurents
+    queryParameters:
+      zip:
+        type: integer
+    responses: 
+      200:
+        description:  retrived all restaurents
+        body: 
+          application/json:
+            example: |
+               [
+                 {
+                   "storeId":1201,
+                   "suite":"123",
+                   "streetName":"125 W Wacker drive ",
+                   "city":"Chicago",
+                   "state":"IL",
+                   "zip":"60661",
+                   "country":"USA"
+                 },
+                 {
+                   "storeId":1201,
+                   "suite":"123",
+                   "streetName":"125 W Wacker drive ",
+                   "city":"Chicago",
+                   "state":"IL",
+                   "zip":"60661",
+                   "country":"USA"
+                 }
+               ]    
+             
+      500:
+        description: server error 
+        body:
+          application/json:
+            example: |
+             {
+              "cause" : "Internal Server Error"
+             }
+      
+      400:
+        body:
+          application/json:
+             example: |
+               {
+                "cause": "Bad request"
+               }
+      401:
+        body:
+         application/json:
+           example: |
+             {
+                "cause": "invalid or missing client id and/or secret"
+              }
+      403:
+       body:
+         application/json:
+           example: |
+             {
+                "cause": "Request forbidden"
+              }
+  /{storeId}:
+    get:
+      is: [rate-limited]
+      description: retrive all product details
+      responses: 
+        200:
+          body: 
+            application/json:
+             example: |
+                 [
+                   {
+                      "productId":"MC123",
+                      "productName":"fries",
+                      "quantity":"1",
+                      "size":"M",
+                      "price":"10",
+                      "status":"Y",
+                      "currency":"USD"
+                   },
+                   {
+                      "productId":"MC125",
+                      "productName":"McChicken",
+                      "quantity":"1",
+                      "size":"",
+                      "price":"1.00",
+                      "status":"Y",
+                      "currency":"USD"
+                   }
+                 ]
+    /order: 
+      post:
+        is: [rate-limited]
+        description: placing order 
+        body:
+          application/json:
+            example: |
+               [
+                 {              
+                  "productId" : "MC123"
+                },
+                {
+                  "productId" : "MC124"
+                  
+                 }
+               ]
+        responses: 
+          201:
+            description: retrive order details
+            body: 
+              application/json:
+                example: |
+                  {
+                   "orderId" : "MD1234"
+                  }
+      /{orderId}:
+        get:
+          is: [rate-limited]
+          description: Get order Items
+          responses: 
+           200:   
+              body:
+                application/json:
+                  example: |
+                   {
+                     "orderDetails":[
+                        {
+                           "productId":"MC123",
+                           "productName":"Fries",
+                           "price":"20.00",
+                           "currency":"USD"
+                        },
+                        {
+                           "productId":"MC123",
+                           "productName":"Fries",
+                           "price":"20.00",
+                           "currency":"USD"
+                        }
+                     ],
+                     "totalPrice":"100"
+                   }
+    
+    
+    
+    
+    
+    
+    
+    

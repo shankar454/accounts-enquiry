@@ -1,0 +1,17 @@
+{
+  "orderDetails":[
+     {
+        "productId":"MC123",
+        "productName":"Fries",
+        "price":"20.00",
+        "currency":"USD"
+     },
+     {
+        "productId":"MC123",
+        "productName":"Fries",
+        "price":"20.00",
+        "currency":"USD"
+     }
+  ],
+  "totalPrice":"100"
+}

@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+    <http:listener-config name="api-httpListenerConfig" host="0.0.0.0" port="8083" doc:name="HTTP Listener Configuration"/>
+    <apikit:config name="api-config" raml="api.raml" consoleEnabled="false" doc:name="Router"/>
+    <flow name="api-main">
+        <http:listener config-ref="api-httpListenerConfig" path="/api/*" doc:name="HTTP"/>
+        <apikit:router config-ref="api-config" doc:name="APIkit Router"/>
+        <exception-strategy ref="api-apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy"/>
+    </flow>
+    <flow name="api-console">
+        <http:listener config-ref="api-httpListenerConfig" path="/console/*" doc:name="HTTP"/>
+        <apikit:console config-ref="api-config" doc:name="APIkit Console"/>
+    </flow>
+    <flow name="get:/restaurents:api-config">
+        <db:select config-ref="MySQL_Configuration" doc:name="Database">
+            <db:parameterized-query><![CDATA[SELECT * FROM Restaurant.store_details where zip = #[message.inboundProperties.'http.query.params'.zip]]]></db:parameterized-query>
+
+        </db:select>
+        <choice doc:name="Choice">
+            <when expression="#[message.payload.size() &gt; 0]">
+                <dw:transform-message doc:name="Transform Message">
+                    <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+payload]]></dw:set-payload>
+                </dw:transform-message>
+            </when>
+            <otherwise>
+                <set-property propertyName="http.status" value="400" doc:name="Property"/>
+                <set-payload value="Restaurents not avaliable for this Pin :  #[message.inboundProperties.'http.query.params'.zip], please try with other zip code" doc:name="Set Payload"/>
+            </otherwise>
+        </choice>
+
+
+    </flow>
+    <flow name="get:/restaurents/{storeId}:api-config">
+        <db:select config-ref="MySQL_Configuration" doc:name="Database">
+            <db:parameterized-query><![CDATA[SELECT * FROM restaurant.product_catalog where Store_ID = #[flowVars.storeId]]]></db:parameterized-query>
+
+        </db:select>
+        <choice doc:name="Choice">
+            <when expression="#[message.payload.size() &gt; 0]">
+                <dw:transform-message doc:name="Transform Message">
+                    <dw:input-payload/>
+                    <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+payload map ((payload01 , indexOfPayload01) -> {
+	productId: payload01.Product_ID,
+	productName: payload01.Product_Name,
+	quantity: payload01.Quantity,
+	size: payload01.Size,
+	price: payload01.Price as :string,
+	currency: payload01.Currency
+})]]></dw:set-payload>
+                </dw:transform-message>
+            </when>
+            <otherwise>
+                <set-property propertyName="http.status" value="400" doc:name="Property"/>
+                <set-payload value="  Store Id #[flowVars.storeId] not found please check with other" doc:name="Set Payload"/>
+            </otherwise>
+        </choice>
+
+
+    </flow>
+    <flow name="get:/restaurents/{storeId}/order/{orderId}:api-config">
+        <db:select config-ref="MySQL_Configuration" doc:name="Database">
+            <db:parameterized-query><![CDATA[SELECT * FROM restaurant.products_placed where Order_id= #[flowVars.orderId]]]></db:parameterized-query>
+
+        </db:select>
+		 <choice doc:name="Choice">
+            <when expression="#[message.payload.size() &gt; 0]">
+                <dw:transform-message doc:name="Transform Message">
+                    <dw:input-payload doc:sample="C:\Users\shankar\Desktop\example.json"/>
+                    <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+	orderDetails: payload map ((payload01 , indexOfPayload01) -> {
+		productId: payload01.Product_ID,
+		productName: payload01.Product_Name,
+		price: payload01.price,
+		currency: payload01.currency
+	}),
+    totalPrice: (sum payload.price) when payload.price != null otherwise 0 
+}]]></dw:set-payload>
+                </dw:transform-message>
+
+            </when>
+            <otherwise>
+                <set-property propertyName="http.status" value="400" doc:name="Property"/>
+                <set-payload value="ORDERS WITH ORDER id: #[flowVars.orderId]" doc:name="Set Payload"/>
+            </otherwise>
+        </choice>
+
+
+    </flow>
+
+    <flow name="post:/restaurents/{storeId}/order:api-config">
+        <set-variable variableName="orderId" value="#[java.util.UUID.randomUUID().toString()]" doc:name="Variable"/>
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+payload]]></dw:set-payload>
+        </dw:transform-message>
+
+        <foreach doc:name="For Each" >
+            <set-variable variableName="productId" value="#[payload.productId]" doc:name="Variable"/>
+            <db:select config-ref="MySQL_Configuration" doc:name="Database">
+                <db:parameterized-query><![CDATA[SELECT * FROM restaurant.product_catalog WHERE Store_ID = #[flowVars.storeId] and Product_ID = #[flowVars.productId]]]></db:parameterized-query>
+
+
+            </db:select>
+            <logger level="INFO" doc:name="Logger" message="post log: #[payload]"/>
+
+            <foreach doc:name="For Each">
+                <db:insert config-ref="MySQL_Configuration" doc:name="Database">
+                    <db:parameterized-query><![CDATA[insert into restaurant.products_placed(Order_ID,Store_ID,Product_ID,Product_Name,Price)
+values(#[flowVars.orderId],#[flowVars.storeId],#[payload.Product_Id],#[payload.Product_Name],#[payload.Price])]]></db:parameterized-query>
+
+
+                </db:insert>
+            </foreach>
+
+        </foreach>
+        <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+	orderId: flowVars.orderId
+}]]></dw:set-payload>
+        </dw:transform-message>
+
+    </flow>
+    <apikit:mapping-exception-strategy name="api-apiKitGlobalExceptionMapping">
+        <apikit:mapping statusCode="404">
+            <apikit:exception value="org.mule.module.apikit.exception.NotFoundException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Resource not found&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="405">
+            <apikit:exception value="org.mule.module.apikit.exception.MethodNotAllowedException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Method not allowed&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="415">
+            <apikit:exception value="org.mule.module.apikit.exception.UnsupportedMediaTypeException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Unsupported media type&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="406">
+            <apikit:exception value="org.mule.module.apikit.exception.NotAcceptableException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Not acceptable&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="400">
+            <apikit:exception value="org.mule.module.apikit.exception.BadRequestException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Bad request&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+    </apikit:mapping-exception-strategy>
+</mule>
